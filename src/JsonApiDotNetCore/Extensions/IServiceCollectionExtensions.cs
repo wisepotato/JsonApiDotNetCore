@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using JsonApiDotNetCore.Builders;
 using JsonApiDotNetCore.Configuration;
 using JsonApiDotNetCore.Data;
@@ -20,6 +21,42 @@ namespace JsonApiDotNetCore.Extensions
     // ReSharper disable once InconsistentNaming
     public static class IServiceCollectionExtensions
     {
+        internal static List<ServiceDescriptor> RequiredServices = new List<ServiceDescriptor>
+        {
+            new ServiceDescriptor(typeof(IEntityRepository<>), typeof(DefaultEntityRepository<>), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IEntityRepository<,>), typeof(DefaultEntityRepository<,>), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(ICreateService<>), typeof(EntityResourceService<>), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(ICreateService<,>), typeof(EntityResourceService<,>), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IGetAllService<>), typeof(EntityResourceService<>), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IGetAllService<,>), typeof(EntityResourceService<,>), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IGetByIdService<>), typeof(EntityResourceService<>), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IGetByIdService<,>), typeof(EntityResourceService<,>), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IGetRelationshipService<,>), typeof(EntityResourceService<>), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IGetRelationshipService<,>), typeof(EntityResourceService<,>), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IUpdateService<>), typeof(EntityResourceService<>), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IUpdateService<,>), typeof(EntityResourceService<,>), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IDeleteService<>), typeof(EntityResourceService<>), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IDeleteService<,>), typeof(EntityResourceService<,>), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IResourceService<>), typeof(EntityResourceService<>), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IResourceService<,>), typeof(EntityResourceService<,>), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IJsonApiContext), typeof(JsonApiContext), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IScopedServiceProvider), typeof(RequestScopedServiceProvider), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(JsonApiRouteHandler), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IMetaBuilder), typeof(MetaBuilder), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IDocumentBuilder), typeof(DocumentBuilder), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IJsonApiSerializer), typeof(JsonApiSerializer), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IJsonApiWriter), typeof(JsonApiWriter), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IJsonApiDeSerializer), typeof(JsonApiDeSerializer), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IJsonApiReader), typeof(JsonApiReader), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IGenericProcessorFactory), typeof(GenericProcessorFactory), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(GenericProcessor<>), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IQueryAccessor), typeof(QueryAccessor), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IQueryParser), typeof(QueryParser), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IControllerContext), typeof(Services.ControllerContext), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IDocumentBuilderOptionsProvider), typeof(DocumentBuilderOptionsProvider), ServiceLifetime.Scoped),
+            new ServiceDescriptor(typeof(IHttpContextAccessor), typeof(HttpContextAccessor), ServiceLifetime.Singleton),
+        };
+
         public static IServiceCollection AddJsonApi<TContext>(this IServiceCollection services)
             where TContext : DbContext
         {
@@ -99,48 +136,11 @@ namespace JsonApiDotNetCore.Extensions
             if (jsonApiOptions.EnableOperations)
                 AddOperationServices(services);
 
-            services.AddScoped(typeof(IEntityRepository<>), typeof(DefaultEntityRepository<>));
-            services.AddScoped(typeof(IEntityRepository<,>), typeof(DefaultEntityRepository<,>));
-
-            services.AddScoped(typeof(ICreateService<>), typeof(EntityResourceService<>));
-            services.AddScoped(typeof(ICreateService<,>), typeof(EntityResourceService<,>));
-
-            services.AddScoped(typeof(IGetAllService<>), typeof(EntityResourceService<>));
-            services.AddScoped(typeof(IGetAllService<,>), typeof(EntityResourceService<,>));
-
-            services.AddScoped(typeof(IGetByIdService<>), typeof(EntityResourceService<>));
-            services.AddScoped(typeof(IGetByIdService<,>), typeof(EntityResourceService<,>));
-
-            services.AddScoped(typeof(IGetRelationshipService<,>), typeof(EntityResourceService<>));
-            services.AddScoped(typeof(IGetRelationshipService<,>), typeof(EntityResourceService<,>));
-
-            services.AddScoped(typeof(IUpdateService<>), typeof(EntityResourceService<>));
-            services.AddScoped(typeof(IUpdateService<,>), typeof(EntityResourceService<,>));
-
-            services.AddScoped(typeof(IDeleteService<>), typeof(EntityResourceService<>));
-            services.AddScoped(typeof(IDeleteService<,>), typeof(EntityResourceService<,>));
-
-            services.AddScoped(typeof(IResourceService<>), typeof(EntityResourceService<>));
-            services.AddScoped(typeof(IResourceService<,>), typeof(EntityResourceService<,>));
-
             services.AddSingleton(jsonApiOptions);
             services.AddSingleton(jsonApiOptions.ContextGraph);
-            services.AddScoped<IJsonApiContext, JsonApiContext>();
-            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-            services.AddScoped<IScopedServiceProvider, RequestScopedServiceProvider>();
-            services.AddScoped<JsonApiRouteHandler>();
-            services.AddScoped<IMetaBuilder, MetaBuilder>();
-            services.AddScoped<IDocumentBuilder, DocumentBuilder>();
-            services.AddScoped<IJsonApiSerializer, JsonApiSerializer>();
-            services.AddScoped<IJsonApiWriter, JsonApiWriter>();
-            services.AddScoped<IJsonApiDeSerializer, JsonApiDeSerializer>();
-            services.AddScoped<IJsonApiReader, JsonApiReader>();
-            services.AddScoped<IGenericProcessorFactory, GenericProcessorFactory>();
-            services.AddScoped(typeof(GenericProcessor<>));
-            services.AddScoped<IQueryAccessor, QueryAccessor>();
-            services.AddScoped<IQueryParser, QueryParser>();
-            services.AddScoped<IControllerContext, Services.ControllerContext>();
-            services.AddScoped<IDocumentBuilderOptionsProvider, DocumentBuilderOptionsProvider>();
+
+            foreach (var svc in RequiredServices)
+                services.Add(svc);
         }
 
         private static void AddOperationServices(IServiceCollection services)
