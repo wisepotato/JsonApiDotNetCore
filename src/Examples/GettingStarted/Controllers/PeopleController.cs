@@ -5,11 +5,11 @@ using Microsoft.Extensions.Logging;
 
 namespace GettingStarted
 {
-    public class ArticlesController : JsonApiController<Article>
+    public class PeopleController : JsonApiController<Person>
     {
-        public ArticlesController(
+        public PeopleController(
           IJsonApiContext jsonApiContext,
-          IResourceService<Article> resourceService,
+          IResourceService<Person> resourceService,
           ILoggerFactory loggerFactory)
           : base(jsonApiContext, resourceService, loggerFactory)
         { }
