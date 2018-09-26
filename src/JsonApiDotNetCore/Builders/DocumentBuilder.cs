@@ -289,6 +289,10 @@ namespace JsonApiDotNetCore.Builders
 
             var typeName = _jsonApiContext.ContextGraph.GetContextEntity(objType);
 
+            if (typeName == null)
+            {
+                throw new Exception($"You need to register the entity  {objType} to the context graph, to be able to load this relationship");
+            }
             var relationships = new List<ResourceIdentifierObject>();
             foreach (var entity in entities)
             {
