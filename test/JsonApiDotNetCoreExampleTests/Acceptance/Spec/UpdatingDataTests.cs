@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -198,6 +198,63 @@ namespace JsonApiDotNetCoreExampleTests.Acceptance.Spec
             Assert.Null(document.Data.Relationships["todo-items"].SingleData);
         }
 
+        [Fact]
+        public async Task Can_Patch_Entity_And_HasMany_Relationships()
+        {
+            // arrange
+            var person = _personFaker.Generate();
+            var todoItems = _todoItemFaker.Generate(2);
+            _context.People.Add(person);
+            _context.TodoItems.AddRange(todoItems);
+            _context.SaveChanges();
+
+            var builder = new WebHostBuilder()
+                .UseStartup<Startup>();
+            var server = new TestServer(builder);
+            var client = server.CreateClient();
+
+
+            var content = new
+            {
+                data = new
+                {
+                    type = "people",
+                    attributes = new
+                    {
+                        firstName = person.FirstName,
+                        lastName = person.LastName
+                    },
+                    relationships = new
+                    {
+                        todoItems = new
+                        {
+                            data = new
+                            {
+                                type = "todo-items",
+                                id = todoItems[0].Id
+                            }
+                        }
+                    }
+                }
+            };
+
+            var httpMethod = new HttpMethod("PATCH");
+            var route = $"/api/v1/people/{person.Id}";
+            var request = new HttpRequestMessage(httpMethod, route);
+
+            request.Content = new StringContent(JsonConvert.SerializeObject(content));
+            request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/vnd.api+json");
+
+            // Act
+            //var response = await client.SendAsync(request);
+            //var updatedTodoItem = _context.TodoItems.AsNoTracking()
+            //    .Include(t => t.Owner)
+            //    .SingleOrDefault(t => t.Id == todoItem.Id);
+
+            //// Assert
+            //Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            //Assert.Equal(person.Id, updatedTodoItem.OwnerId);
+        }
         [Fact]
         public async Task Can_Patch_Entity_And_HasOne_Relationships()
         {

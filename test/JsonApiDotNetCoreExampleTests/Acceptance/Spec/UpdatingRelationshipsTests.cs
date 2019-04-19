@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -39,6 +39,125 @@ namespace JsonApiDotNetCoreExampleTests.Acceptance.Spec
                 .RuleFor(t => t.CreatedDate, f => f.Date.Past());
 
 
+        }
+        [Fact]
+        public async Task Cannot_Update_with_malformed_request()
+        {
+            // Arrange 
+            var todoItem = _todoItemFaker.Generate();
+            var strayTodoItem = _todoItemFaker.Generate();
+            _context.TodoItems.Add(todoItem);
+            _context.TodoItems.Add(strayTodoItem);
+            _context.SaveChanges();
+
+
+            var builder = new WebHostBuilder()
+                .UseStartup<Startup>();
+
+            var server = new TestServer(builder);
+            var client = server.CreateClient();
+
+            // Act
+            var content = new
+            {
+                data = new
+                {
+                    type = "todo-items",
+                    id = todoItem.Id,
+                    relationships = new Dictionary<string, object>
+                    {
+                        { "children-todos", new
+                            {
+                                data = new object[]
+                                {
+                                    new { type = "todo-items" }
+                                }
+
+                            }
+                        },
+                    }
+                }
+            };
+
+            var httpMethod = new HttpMethod("PATCH");
+            var route = $"/api/v1/todo-items/{todoItem.Id}";
+            var request = new HttpRequestMessage(httpMethod, route);
+
+            string serializedContent = JsonConvert.SerializeObject(content);
+            request.Content = new StringContent(serializedContent);
+            request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/vnd.api+json");
+
+
+            // Act
+            var response = await client.SendAsync(request);
+            var body = await response.Content.ReadAsStringAsync();
+            _context = _fixture.GetService<AppDbContext>();
+
+            // Maybe too specific for our use case
+            // But in general it shouldt give a 500.
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            /// Something like a good error should be received?
+        }
+        /// <summary>
+        /// This should give a graceful error
+        /// </summary>
+        /// <returns></returns>
+        [Fact]
+        public async Task Cannot_Update_ToMany_Relationship_By_Patching_Resource_referencing_itself()
+        {
+            // Arrange 
+            var todoItem = _todoItemFaker.Generate();
+            var strayTodoItem = _todoItemFaker.Generate();
+            _context.TodoItems.Add(todoItem);
+            _context.TodoItems.Add(strayTodoItem);
+            _context.SaveChanges();
+
+
+            var builder = new WebHostBuilder()
+                .UseStartup<Startup>();
+
+            var server = new TestServer(builder);
+            var client = server.CreateClient();
+
+            // Act
+            var content = new
+            {
+                data = new
+                {
+                    type = "todo-items",
+                    id = todoItem.Id,
+                    relationships = new Dictionary<string, object>
+                    {
+                        { "children-todos", new
+                            {
+                                data = new object[]
+                                {
+                                    new { type = "todo-items", id = $"{todoItem.Id}" },
+                                    new { type = "todo-items", id = $"{strayTodoItem.Id}" }
+                                }
+
+                            }
+                        },
+                    }
+                }
+            };
+
+            var httpMethod = new HttpMethod("PATCH");
+            var route = $"/api/v1/todo-items/{todoItem.Id}";
+            var request = new HttpRequestMessage(httpMethod, route);
+
+            string serializedContent = JsonConvert.SerializeObject(content);
+            request.Content = new StringContent(serializedContent);
+            request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/vnd.api+json");
+
+
+            // Act
+            var response = await client.SendAsync(request);
+            var body = await response.Content.ReadAsStringAsync();
+            _context = _fixture.GetService<AppDbContext>();
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            /// Something like a good error should be received?
         }
 
         [Fact]

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -348,6 +348,68 @@ namespace JsonApiDotNetCoreExampleTests.Acceptance.Spec
             Assert.NotNull(collectionResult);
             Assert.NotEmpty(collectionResult.TodoItems);
             Assert.Equal(todoItem.Description, collectionResult.TodoItems.Single().Description);
+        }
+
+        [Fact]
+        public async Task Cannot_create_with_ill_defined_relationship_names()
+        {
+            // arrange
+            var builder = new WebHostBuilder()
+                .UseStartup<Startup>();
+            var httpMethod = new HttpMethod("POST");
+            var server = new TestServer(builder);
+            var client = server.CreateClient();
+
+            var context = _fixture.GetService<AppDbContext>();
+
+            var todoItem = new TodoItem();
+            var owner = new JsonApiDotNetCoreExample.Models.Person();
+            context.People.Add(owner);
+            await context.SaveChangesAsync();
+
+            var route = "/api/v1/todo-items";
+            var request = new HttpRequestMessage(httpMethod, route);
+            var content = new
+            {
+                data = new
+                {
+                    type = "todo-items",
+                    attributes = new
+                    {
+                        description = "Hello"
+                    },
+                    relationships = new Dictionary<string, dynamic>
+                    {
+                        {  "oWnEr",  new {
+                            data = new
+                            {
+                                type = "people",
+                                id = owner.Id.ToString()
+                            }
+                        } }
+                    }
+                }
+            };
+
+            request.Content = new StringContent(JsonConvert.SerializeObject(content));
+            request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/vnd.api+json");
+
+            // act
+            var response = await client.SendAsync(request);
+            var body = await response.Content.ReadAsStringAsync();
+
+            // assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var deserializedBody = (TodoItem)_fixture.GetService<IJsonApiDeSerializer>().Deserialize(body);
+            var newId = deserializedBody.Id;
+
+            context = _fixture.GetService<AppDbContext>();
+            var todoItemResult = context.TodoItems
+                .Include(c => c.Owner)
+                .SingleOrDefault(c => c.Id == newId);
+
+            Assert.Equal("Hello", todoItemResult.Description);
+            Assert.Equal(owner.Id, todoItemResult.OwnerId);
         }
 
         [Fact]
